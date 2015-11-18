@@ -1,13 +1,11 @@
-<<<<<<< HEAD
 ##### MAKING SOME DEV CHANGES
 ##### MORE CHANGES
 #####MASTER CHANGE
+<<<<<<< HEAD
 #####DEVCHANGE
 #####DEVCHANGE
 =======
-##### MAKING SOME CHANGES
-
->>>>>>> Changes to master branch
+>>>>>>> Rebase start
 
 @isTest
 private class TEST_TRIG_Account {
