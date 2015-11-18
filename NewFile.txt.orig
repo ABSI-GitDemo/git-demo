@@ -1,0 +1,189 @@
+<<<<<<< HEAD
+##### MAKING SOME DEV CHANGES
+##### MORE CHANGES
+#####MASTER CHANGE
+#####DEVCHANGE
+#####DEVCHANGE
+=======
+##### MAKING SOME CHANGES
+
+>>>>>>> Changes to master branch
+
+@isTest
+private class TEST_TRIG_Account {
+   
+    @isTest static void testBrandlevelAccountGeneratedForProspect(){
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        Test.startTest();
+        List<Account> accounts = TEST_SETUP_GLOBAL.createProspectAccount(201);
+        Test.stopTest();
+
+        List<Account> brandlevels = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountBrandRTId];
+        System.assertEquals(201, brandlevels.size(), 'Wrong number of brandlevel accounts created');
+    }
+
+    @isTest static void testBrandlevelAccountGeneratedForCustomer(){
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        Test.startTest();
+        List<Account> accounts = TEST_SETUP_GLOBAL.createAccountByBrand(201, true, true, true, true, true);
+        Test.stopTest();
+
+        List<Account> brandlevels = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountBrandRTId];
+        System.assertEquals(201*5, brandlevels.size(), 'Wrong number of brandlevel accounts created');
+    }
+
+    @isTest static void testBrandlevelAccountGeneratedForProspectUpdate(){
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        List<Account> accounts = TEST_SETUP_GLOBAL.createProspectAccount(201);
+
+        for(Account a: accounts){
+            a.Seat_flag__c = true;
+        }
+
+        Test.startTest();
+        update accounts;
+        Test.stopTest();
+
+        List<Account> brandlevels = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountBrandRTId];
+        System.assertEquals(201*2, brandlevels.size(), 'Wrong number of brandlevel accounts created');
+    }
+
+    @isTest static void testBrandlevelAccountGeneratedForCustomerUpdate(){
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);        
+        List<Account> accounts = TEST_SETUP_GLOBAL.createAccount(201);
+
+        for(Account a: accounts){
+            a.Seat_flag__c = true;
+        }
+
+        Test.startTest();
+        update accounts;
+        Test.stopTest();
+
+        List<Account> brandlevels = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountBrandRTId];
+        System.assertEquals(201*2, brandlevels.size(), 'Wrong number of brandlevel accounts created');
+    }
+
+    //@isTest static void testBrandlevelAccountSyncedOnToplevelUpdate(){
+    //    Integer amount = 201;
+    //    List<Account> accounts = TEST_SETUP_Account.createTopLevelAccounts(amount, false, true, true, false, false, false, false);
+    //    TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+    //    TEST_SETUP_GLOBAL.CreateMigrationCS(false);
+    //    insert accounts;
+
+    //    List<Id> accountIds = new List<Id>();
+    //    for(Account a : accounts){
+    //        a.Email__c = 'newemail@new.thing';
+    //        a.PersonEmail = 'newemail@new.thing';
+    //        a.PersonMailingCity = 'somenewcity';
+    //        accountIds.add(a.Id);
+    //    }
+
+    //    Test.startTest();
+    //    update accounts;
+    //    Test.stopTest();
+
+    //    List<Account> brandlevels = [SELECT PersonEmail, Email__c, PersonMailingCity, VW_flag__c FROM Account WHERE Top_Level_Person_Account__c IN :accountIds];
+
+    //    for(Account a : brandlevels){
+    //        System.assertNotEquals('newemail@new.thing', a.PersonEmail, 'Email was copied');
+    //        System.assertNotEquals('newemail@new.thing', a.Email__c, 'Email was copied');
+    //        System.assertEquals('somenewcity', a.PersonMailingCity, 'City was not copied');
+    //        System.assertNotEquals(true, a.VW_flag__c, 'Flag was set');
+    //    }
+    //}
+
+    @isTest static void testToplevelAccountSyncedOnBrandlevelUpdate(){
+        Integer amount = 201;
+        List<Account> accounts = TEST_SETUP_Account.createTopLevelAccounts(amount, false, true, true, true, true, false, false);
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        TEST_SETUP_GLOBAL.CreateMigrationCS(false);
+        insert accounts;
+
+        List<Id> accountIds = new List<Id>();
+        for(Account a : accounts){
+            accountIds.add(a.Id);
+        }
+
+        List<Account> brandlevels = [SELECT PersonEmail, Email__c, PersonMailingCity, VW_flag__c, Top_Level_Person_Account__c FROM Account WHERE Top_Level_Person_Account__c IN :accountIds AND Brand__c = :UTIL_Constants.BRAND_NAME_VW];
+        accountIds.clear(); 
+        for(Account a : brandlevels){
+            a.Email__c = 'newemail@new.thing';
+            a.PersonEmail = 'newemail@new.thing';
+            a.PersonMailingCity = 'somenewcity';
+            accountIds.add(a.Top_Level_Person_Account__c);
+            accountIds.add(a.Id);
+        }
+
+        Test.startTest();
+        TRIG_Account_Handler.brandlevelsSynced = false;
+        update brandlevels;
+        Test.stopTest();
+
+        //Since the toplevel update will trigger another brandlevel update, every single related account should have the same data
+        List<Account> allAccounts = [SELECT PersonEmail, Email__c, PersonMailingCity, VW_flag__c FROM Account WHERE Id IN :accountIds];
+
+        for(Account a : allAccounts){
+            System.assertEquals('somenewcity', a.PersonMailingCity, 'City was not copied');
+        }
+    }
+
+    @isTest static void testToplevelsMerged(){
+        Integer amount = 20;
+        List<Account> accounts = TEST_SETUP_Account.createTopLevelAccounts(amount, false, true, true, true, true, true, true);
+
+        for(Integer i = 0; i<amount; i++){
+            accounts[i].KP_Id__c = 'tkpid' + i;
+        }       
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        TEST_SETUP_GLOBAL.CreateMigrationCS(false);
+        insert accounts;
+
+        //Merge [1] into [0]
+        //NM: this must be deleted
+        //for(Integer i = 0; i<amount/2; i++){
+        //  accounts[i].KP_Merge_Winning_Record__c = true;
+        //}
+
+        for(Integer i = amount/2; i<amount; i++){
+            accounts[i].KP_Id_Merge_Winning_Record__c = accounts[i-(amount/2)].KP_Id__c;
+        }
+        System.debug(LoggingLevel.ERROR, 'ABSILOG***START_MERGE_TEST*** ' + accounts);
+        Test.startTest();
+        update accounts;
+        Test.stopTest();
+        System.debug(LoggingLevel.ERROR, 'ABSILOG***END_MERGE_TEST*** ' + accounts);
+        List<Account> remainingAccounts = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountTopLevelRTId];
+        System.assertEquals(amount/2, remainingAccounts.size());
+    }
+
+    @isTest static void testToplevelsMergeFailure(){
+        Integer amount = 20;
+        List<Account> accounts = TEST_SETUP_Account.createTopLevelAccounts(amount, false, true, true, true, true, true, true);
+
+        for(Integer i = 0; i<amount; i++){
+            accounts[i].KP_Id__c = 'tkpid' + i;
+        }       
+        TEST_SETUP_GLOBAL.CreateCSMyBrand(null);
+        TEST_SETUP_GLOBAL.CreateMigrationCS(false);
+        insert accounts;
+
+        //Merge [1] into [0]
+        //NM this must be deleted
+        //for(Integer i = 0; i<amount/2; i++){
+        //  accounts[i].KP_Merge_Winning_Record__c = true;
+        //}
+
+        for(Integer i = amount/2; i<amount; i++){
+            accounts[i].KP_Id_Merge_Winning_Record__c = accounts[i-(amount/2)].KP_Id__c + 'a'; //Set unknown kp id
+        }
+
+        Test.startTest();
+        update accounts;
+        Test.stopTest();
+
+        List<Account> remainingAccounts = [SELECT Id FROM Account WHERE RecordTypeId = :UTIL_RecordTypes.PersonAccountTopLevelRTId];
+        System.assertEquals(amount, remainingAccounts.size()); //Nothing should be merged
+    }
+    
+}
